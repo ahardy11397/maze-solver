@@ -1,0 +1,33 @@
+# maze_renderer.meme — Maze rendering and path marking
+use models
+
+function render_maze(rec: MazeRecord) -> String:
+    return rec.grid_data
+
+function render_maze_with_path(rec: MazeRecord, path: List<String>) -> String:
+    define path_set as empty set of String
+    for each step in path:
+        add step to set path_set
+        
+    define raw_lines as split rec.grid_data by "\n"
+    define list rendered_lines as empty List<String>
+    
+    for r from 0 to rec.rows - 1:
+        define row_str as ""
+        define raw_line as raw_lines[r]
+        for c from 0 to rec.cols - 1:
+            define key as text of r + "," + text of c
+            if r == rec.start_r and c == rec.start_c:
+                set row_str to row_str + "S"
+            else:
+                if r == rec.end_r and c == rec.end_c:
+                    set row_str to row_str + "E"
+                else:
+                    if path_set contains key:
+                        set row_str to row_str + "*"
+                    else:
+                        define ch as char at c of raw_line
+                        set row_str to row_str + ch
+        add row_str to rendered_lines
+        
+    return join rendered_lines with "\n"

@@ -1,0 +1,76 @@
+# bfs_solver.meme — Breadth-First Search shortest pathfinder
+use models
+
+function solve_bfs(grid: List<List<Int>>, rows: Int, cols: Int, start_r: Int, start_c: Int, end_r: Int, end_c: Int) -> List<String>:
+    define list queue as empty List<QueueNode>
+    define visited as empty set of String
+    
+    add QueueNode(r=start_r, c=start_c, parent_idx=-1, dist=0) to queue
+    define start_key as text of start_r + "," + text of start_c
+    add start_key to set visited
+    
+    define head_idx: Int as 0
+    define end_found_idx: Int as 0 - 1
+    
+    while head_idx < length of queue and end_found_idx < 0:
+        define curr as queue[head_idx]
+        define curr_idx as head_idx
+        set head_idx to head_idx + 1
+        
+        if curr.r == end_r and curr.c == end_c:
+            set end_found_idx to curr_idx
+        else:
+            # 1. Up: curr.r - 1, curr.c
+            define up_r as curr.r - 1
+            if up_r >= 0:
+                if grid[up_r][curr.c] == 0:
+                    define up_k as text of up_r + "," + text of curr.c
+                    if not (visited contains up_k):
+                        add up_k to set visited
+                        add QueueNode(r=up_r, c=curr.c, parent_idx=curr_idx, dist=curr.dist + 1) to queue
+                        
+            # 2. Down: curr.r + 1, curr.c
+            define down_r as curr.r + 1
+            if down_r < rows:
+                if grid[down_r][curr.c] == 0:
+                    define down_k as text of down_r + "," + text of curr.c
+                    if not (visited contains down_k):
+                        add down_k to set visited
+                        add QueueNode(r=down_r, c=curr.c, parent_idx=curr_idx, dist=curr.dist + 1) to queue
+                        
+            # 3. Left: curr.r, curr.c - 1
+            define left_c as curr.c - 1
+            if left_c >= 0:
+                if grid[curr.r][left_c] == 0:
+                    define left_k as text of curr.r + "," + text of left_c
+                    if not (visited contains left_k):
+                        add left_k to set visited
+                        add QueueNode(r=curr.r, c=left_c, parent_idx=curr_idx, dist=curr.dist + 1) to queue
+                        
+            # 4. Right: curr.r, curr.c + 1
+            define right_c as curr.c + 1
+            if right_c < cols:
+                if grid[curr.r][right_c] == 0:
+                    define right_k as text of curr.r + "," + text of right_c
+                    if not (visited contains right_k):
+                        add right_k to set visited
+                        add QueueNode(r=curr.r, c=right_c, parent_idx=curr_idx, dist=curr.dist + 1) to queue
+                        
+    if end_found_idx < 0:
+        define list no_path as empty List<String>
+        return no_path
+        
+    define list rev_path as empty List<String>
+    define p_idx: Int as end_found_idx
+    while p_idx >= 0:
+        define node as queue[p_idx]
+        define k as text of node.r + "," + text of node.c
+        add k to rev_path
+        set p_idx to node.parent_idx
+        
+    define list path as empty List<String>
+    define rev_len: Int as length of rev_path
+    for i from 0 to rev_len - 1:
+        define idx as rev_len - 1 - i
+        add rev_path[idx] to path
+    return path

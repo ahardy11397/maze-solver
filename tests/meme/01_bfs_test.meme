@@ -1,0 +1,74 @@
+# 01_bfs_test.meme — Breadth-First Search verification
+use models
+use maze_loader
+use bfs_solver
+
+test bfs_fixed_maze_shortest_path:
+    define list lines as empty List<String>
+    add "S..#." to lines
+    add "##.#." to lines
+    add "...#." to lines
+    add ".###." to lines
+    add "....E" to lines
+    
+    define rec as build_maze_record(lines)
+    assert rec.rows == 5
+    assert rec.cols == 5
+    assert rec.start_r == 0
+    assert rec.start_c == 0
+    assert rec.end_r == 4
+    assert rec.end_c == 4
+    
+    define grid as build_grid_from_data(rec.grid_data, rec.rows, rec.cols)
+    define list path as solve_bfs(grid, rec.rows, rec.cols, rec.start_r, rec.start_c, rec.end_r, rec.end_c)
+    
+    # Hand-computed: exactly 12 steps (13 cells visited)
+    assert length of path == 13
+    define steps as length of path - 1
+    assert steps == 12
+    assert path[0] == "0,0"
+    assert path[1] == "0,1"
+    assert path[2] == "0,2"
+    assert path[3] == "1,2"
+    assert path[4] == "2,2"
+    assert path[5] == "2,1"
+    assert path[6] == "2,0"
+    assert path[7] == "3,0"
+    assert path[8] == "4,0"
+    assert path[9] == "4,1"
+    assert path[10] == "4,2"
+    assert path[11] == "4,3"
+    assert path[12] == "4,4"
+
+test bfs_vs_greedy_wall_detour:
+    # Direct path to E (2,2) via right (0,1) is a trap; detour via down is required
+    define list lines as empty List<String>
+    add "S.#" to lines
+    add ".#." to lines
+    add "..E" to lines
+    
+    define rec as build_maze_record(lines)
+    define grid as build_grid_from_data(rec.grid_data, rec.rows, rec.cols)
+    define list path as solve_bfs(grid, rec.rows, rec.cols, rec.start_r, rec.start_c, rec.end_r, rec.end_c)
+    
+    assert length of path == 5
+    assert path[0] == "0,0"
+    assert path[1] == "1,0"
+    assert path[2] == "2,0"
+    assert path[3] == "2,1"
+    assert path[4] == "2,2"
+    define steps as length of path - 1
+    assert steps == 4
+
+test bfs_no_path_walled_off:
+    # E is completely separated by a solid wall
+    define list lines as empty List<String>
+    add "S." to lines
+    add "##" to lines
+    add ".E" to lines
+    
+    define rec as build_maze_record(lines)
+    define grid as build_grid_from_data(rec.grid_data, rec.rows, rec.cols)
+    define list path as solve_bfs(grid, rec.rows, rec.cols, rec.start_r, rec.start_c, rec.end_r, rec.end_c)
+    
+    assert length of path == 0

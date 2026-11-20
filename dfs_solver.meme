@@ -1,0 +1,86 @@
+# dfs_solver.meme — Depth-First Search recursive pathfinder
+use models
+
+function list_to_visited_set(items: List<String>) -> Set<String>:
+    define s as empty set of String
+    for each item in items:
+        add item to set s
+    return s
+
+function dfs_recursive(grid: List<List<Int>>, rows: Int, cols: Int, r: Int, c: Int, end_r: Int, end_c: Int, visited_list: List<String>) -> List<String>:
+    define key as text of r + "," + text of c
+    define list new_visited as empty List<String>
+    for each v in visited_list:
+        add v to new_visited
+    add key to new_visited
+    
+    # visited Set<String> of "r,c" keys
+    define visited: Set<String> as list_to_visited_set(new_visited)
+    
+    if r == end_r and c == end_c:
+        define list res as empty List<String>
+        add key to res
+        return res
+        
+    # 1. Up: r - 1, c
+    define up_r as r - 1
+    if up_r >= 0:
+        if grid[up_r][c] == 0:
+            define up_k as text of up_r + "," + text of c
+            if not (visited contains up_k):
+                define list p_up as dfs_recursive(grid, rows, cols, up_r, c, end_r, end_c, new_visited)
+                if length of p_up > 0:
+                    define list full as empty List<String>
+                    add key to full
+                    for each step in p_up:
+                        add step to full
+                    return full
+
+    # 2. Down: r + 1, c
+    define down_r as r + 1
+    if down_r < rows:
+        if grid[down_r][c] == 0:
+            define down_k as text of down_r + "," + text of c
+            if not (visited contains down_k):
+                define list p_down as dfs_recursive(grid, rows, cols, down_r, c, end_r, end_c, new_visited)
+                if length of p_down > 0:
+                    define list full as empty List<String>
+                    add key to full
+                    for each step in p_down:
+                        add step to full
+                    return full
+
+    # 3. Left: r, c - 1
+    define left_c as c - 1
+    if left_c >= 0:
+        if grid[r][left_c] == 0:
+            define left_k as text of r + "," + text of left_c
+            if not (visited contains left_k):
+                define list p_left as dfs_recursive(grid, rows, cols, r, left_c, end_r, end_c, new_visited)
+                if length of p_left > 0:
+                    define list full as empty List<String>
+                    add key to full
+                    for each step in p_left:
+                        add step to full
+                    return full
+
+    # 4. Right: r, c + 1
+    define right_c as c + 1
+    if right_c < cols:
+        if grid[r][right_c] == 0:
+            define right_k as text of r + "," + text of right_c
+            if not (visited contains right_k):
+                define list p_right as dfs_recursive(grid, rows, cols, r, right_c, end_r, end_c, new_visited)
+                if length of p_right > 0:
+                    define list full as empty List<String>
+                    add key to full
+                    for each step in p_right:
+                        add step to full
+                    return full
+
+    define list empty_res as empty List<String>
+    return empty_res
+
+function solve_dfs(grid: List<List<Int>>, rows: Int, cols: Int, start_r: Int, start_c: Int, end_r: Int, end_c: Int) -> List<String>:
+    define list init_visited as empty List<String>
+    return dfs_recursive(grid, rows, cols, start_r, start_c, end_r, end_c, init_visited)

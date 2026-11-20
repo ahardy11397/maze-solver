@@ -1,0 +1,105 @@
+# 02_dfs_test.meme — Depth-First Search verification
+use models
+use maze_loader
+use bfs_solver
+use dfs_solver
+
+test dfs_finds_valid_path_and_not_shortest:
+    # A maze where BFS takes direct top path (4 steps), but DFS neighbor order (Down before Right)
+    # takes a longer 8-step path around the bottom
+    define list lines as empty List<String>
+    add "S...E" to lines
+    add ".###." to lines
+    add "....." to lines
+    
+    define rec as build_maze_record(lines)
+    define grid as build_grid_from_data(rec.grid_data, rec.rows, rec.cols)
+    
+    define list bfs_path as solve_bfs(grid, rec.rows, rec.cols, rec.start_r, rec.start_c, rec.end_r, rec.end_c)
+    define list dfs_path as solve_dfs(grid, rec.rows, rec.cols, rec.start_r, rec.start_c, rec.end_r, rec.end_c)
+    
+    # BFS takes shortest path: 4 steps (5 cells)
+    assert length of bfs_path == 5
+    define bfs_steps as length of bfs_path - 1
+    assert bfs_steps == 4
+    
+    # DFS takes alternate valid path: 8 steps (9 cells)
+    assert length of dfs_path == 9
+    define dfs_steps as length of dfs_path - 1
+    assert dfs_steps == 8
+    assert dfs_steps > bfs_steps
+    
+    # Assert same start and end
+    assert dfs_path[0] == "0,0"
+    assert dfs_path[length of dfs_path - 1] == "0,4"
+    
+    # Assert validity: every step moves to an adjacent open cell
+    for i from 0 to length of dfs_path - 2:
+        define step1 as dfs_path[i]
+        define step2 as dfs_path[i + 1]
+        define parts1 as split step1 by ","
+        define parts2 as split step2 by ","
+        define r1 as integer value of parts1[0]
+        define c1 as integer value of parts1[1]
+        define r2 as integer value of parts2[0]
+        define c2 as integer value of parts2[1]
+        
+        # Open in grid
+        assert grid[r1][c1] == 0
+        assert grid[r2][c2] == 0
+        
+        # Adjacent Manhattan distance == 1
+        define dr as r1 - r2
+        if dr < 0:
+            set dr to 0 - dr
+        define dc as c1 - c2
+        if dc < 0:
+            set dc to 0 - dc
+        define dist as dr + dc
+        assert dist == 1
+
+test dfs_cycle_safety_loops:
+    # Completely open 4x4 room full of cycles/loops
+    define list lines as empty List<String>
+    add "S..." to lines
+    add "...." to lines
+    add "...." to lines
+    add "...E" to lines
+    
+    define rec as build_maze_record(lines)
+    define grid as build_grid_from_data(rec.grid_data, rec.rows, rec.cols)
+    define list path as solve_dfs(grid, rec.rows, rec.cols, rec.start_r, rec.start_c, rec.end_r, rec.end_c)
+    
+    assert length of path > 0
+    assert path[0] == "0,0"
+    assert path[length of path - 1] == "3,3"
+    
+    # Verify adjacent steps
+    for i from 0 to length of path - 2:
+        define s1 as path[i]
+        define s2 as path[i + 1]
+        define p1 as split s1 by ","
+        define p2 as split s2 by ","
+        define r1 as integer value of p1[0]
+        define c1 as integer value of p1[1]
+        define r2 as integer value of p2[0]
+        define c2 as integer value of p2[1]
+        define dr as r1 - r2
+        if dr < 0:
+            set dr to 0 - dr
+        define dc as c1 - c2
+        if dc < 0:
+            set dc to 0 - dc
+        assert dr + dc == 1
+
+test dfs_no_path_walled_off:
+    define list lines as empty List<String>
+    add "S." to lines
+    add "##" to lines
+    add ".E" to lines
+    
+    define rec as build_maze_record(lines)
+    define grid as build_grid_from_data(rec.grid_data, rec.rows, rec.cols)
+    define list path as solve_dfs(grid, rec.rows, rec.cols, rec.start_r, rec.start_c, rec.end_r, rec.end_c)
+    
+    assert length of path == 0

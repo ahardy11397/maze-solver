@@ -1,0 +1,65 @@
+# 03_validation_test.meme — Maze validation tests
+use models
+use maze_loader
+
+test validation_happy_path:
+    define list lines as empty List<String>
+    add "S..#" to lines
+    add "#.E." to lines
+    define v as validate_maze_lines(lines)
+    assert v.is_valid
+    assert length of string v.error_message == 0
+
+test validation_ragged_rows_rejected:
+    define list lines as empty List<String>
+    add "S..#" to lines
+    add "#.E" to lines
+    define v as validate_maze_lines(lines)
+    assert not v.is_valid
+    assert v.error_message == "ragged rows in maze"
+
+test validation_missing_start_rejected:
+    define list lines as empty List<String>
+    add "...#" to lines
+    add "#.E." to lines
+    define v as validate_maze_lines(lines)
+    assert not v.is_valid
+    assert v.error_message == "missing start (S) in maze"
+
+test validation_missing_end_rejected:
+    define list lines as empty List<String>
+    add "S..#" to lines
+    add "#..." to lines
+    define v as validate_maze_lines(lines)
+    assert not v.is_valid
+    assert v.error_message == "missing end (E) in maze"
+
+test validation_multiple_start_rejected:
+    define list lines as empty List<String>
+    add "S..S" to lines
+    add "#.E." to lines
+    define v as validate_maze_lines(lines)
+    assert not v.is_valid
+    assert v.error_message == "multiple start (S) cells in maze"
+
+test validation_multiple_end_rejected:
+    define list lines as empty List<String>
+    add "S..E" to lines
+    add "#.E." to lines
+    define v as validate_maze_lines(lines)
+    assert not v.is_valid
+    assert v.error_message == "multiple end (E) cells in maze"
+
+test validation_invalid_character_rejected:
+    define list lines as empty List<String>
+    add "S..X" to lines
+    add "#.E." to lines
+    define v as validate_maze_lines(lines)
+    assert not v.is_valid
+    assert v.error_message == "invalid character in maze: X"
+
+test validation_empty_maze_rejected:
+    define list lines as empty List<String>
+    define v as validate_maze_lines(lines)
+    assert not v.is_valid
+    assert v.error_message == "empty maze"

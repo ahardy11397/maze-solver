@@ -1,0 +1,20 @@
+# models.meme — Core records for maze representation and pathfinding
+
+record MazeRecord:
+    rows: Int
+    cols: Int
+    start_r: Int
+    start_c: Int
+    end_r: Int
+    end_c: Int
+    grid_data: String
+
+record QueueNode:
+    r: Int
+    c: Int
+    parent_idx: Int
+    dist: Int
+
+record ValidationResult:
+    is_valid: Bool
+    error_message: String

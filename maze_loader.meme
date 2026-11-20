@@ -1,0 +1,126 @@
+# maze_loader.meme — Parsing, validation, and JSON persistence for mazes
+use models
+
+function clean_maze_lines(lines: List<String>) -> List<String>:
+    define list clean_lines as empty List<String>
+    for each line in lines:
+        define trimmed as trim line
+        if length of string trimmed > 0:
+            add trimmed to clean_lines
+    return clean_lines
+
+function validate_maze_lines(lines: List<String>) -> ValidationResult:
+    define clean_lines as clean_maze_lines(lines)
+    if length of clean_lines == 0:
+        return ValidationResult(is_valid=false, error_message="empty maze")
+    
+    define first_len as length of string clean_lines[0]
+    if first_len == 0:
+        return ValidationResult(is_valid=false, error_message="empty maze")
+        
+    for each line in clean_lines:
+        if length of string line != first_len:
+            return ValidationResult(is_valid=false, error_message="ragged rows in maze")
+            
+    define start_count: Int as 0
+    define end_count: Int as 0
+    for each line in clean_lines:
+        for c from 0 to first_len - 1:
+            define ch as char at c of line
+            if ch == "S":
+                add 1 to start_count
+            else:
+                if ch == "E":
+                    add 1 to end_count
+                else:
+                    if ch != "#" and ch != "1" and ch != "." and ch != "0":
+                        return ValidationResult(is_valid=false, error_message="invalid character in maze: " + ch)
+                        
+    if start_count == 0:
+        return ValidationResult(is_valid=false, error_message="missing start (S) in maze")
+    if start_count > 1:
+        return ValidationResult(is_valid=false, error_message="multiple start (S) cells in maze")
+    if end_count == 0:
+        return ValidationResult(is_valid=false, error_message="missing end (E) in maze")
+    if end_count > 1:
+        return ValidationResult(is_valid=false, error_message="multiple end (E) cells in maze")
+        
+    return ValidationResult(is_valid=true, error_message="")
+
+function build_maze_record(lines: List<String>) -> MazeRecord:
+    define clean_lines as clean_maze_lines(lines)
+    define rows as length of clean_lines
+    define cols as length of string clean_lines[0]
+    
+    define start_r: Int as 0
+    define start_c: Int as 0
+    define end_r: Int as 0
+    define end_c: Int as 0
+    
+    for r from 0 to rows - 1:
+        define line as clean_lines[r]
+        for c from 0 to cols - 1:
+            define ch as char at c of line
+            if ch == "S":
+                set start_r to r
+                set start_c to c
+            if ch == "E":
+                set end_r to r
+                set end_c to c
+                
+    define grid_data as join clean_lines with "\n"
+    return MazeRecord(rows=rows, cols=cols, start_r=start_r, start_c=start_c, end_r=end_r, end_c=end_c, grid_data=grid_data)
+
+function build_grid_from_data(grid_data: String, rows: Int, cols: Int) -> List<List<Int>>:
+    define list grid as empty List<List<Int>>
+    define lines as split grid_data by "\n"
+    for r from 0 to rows - 1:
+        define list row as empty List<Int>
+        define line as lines[r]
+        for c from 0 to cols - 1:
+            define ch as char at c of line
+            if ch == "#" or ch == "1":
+                add 1 to row
+            else:
+                add 0 to row
+        add row to grid
+    return grid
+
+function count_open_and_wall_cells(grid_data: String, rows: Int, cols: Int) -> List<Int>:
+    define lines as split grid_data by "\n"
+    define open_count: Int as 0
+    define wall_count: Int as 0
+    for r from 0 to rows - 1:
+        define line as lines[r]
+        for c from 0 to cols - 1:
+            define ch as char at c of line
+            if ch == "#" or ch == "1":
+                add 1 to wall_count
+            else:
+                add 1 to open_count
+    define list counts as empty List<Int>
+    add open_count to counts
+    add wall_count to counts
+    return counts
+
+function load_maze_record(path: String) -> Optional<MazeRecord>:
+    return read json record MazeRecord from file path or else nothing
+
+function read_optional_file_string(path: String) -> Optional<String>:
+    return read string from file path or else nothing
+
+function save_maze_record(path: String, rec: MazeRecord) -> Void:
+    if not (file exists "data"):
+        create directory "data"
+    write rec as json to file path
+
+function load_maze_from_text(path: String) -> Optional<MazeRecord>:
+    define lines_opt as read lines from file path or else nothing
+    if lines_opt is nothing:
+        return nothing
+    define lines as value of lines_opt
+    define v as validate_maze_lines(lines)
+    if not v.is_valid:
+        return nothing
+    define rec as build_maze_record(lines)
+    return optional rec

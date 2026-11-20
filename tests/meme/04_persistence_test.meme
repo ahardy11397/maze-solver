@@ -1,0 +1,92 @@
+# 04_persistence_test.meme — JSON persistence, Optional tolerance, and rendering
+use models
+use maze_loader
+use maze_renderer
+
+test json_persistence_roundtrip:
+    define list lines as empty List<String>
+    add "S..#" to lines
+    add "#.E." to lines
+    
+    define original as build_maze_record(lines)
+    define scratch_path as "tests/tmp/test_maze_roundtrip.json"
+    
+    if not (file exists "tests/tmp"):
+        create directory "tests/tmp"
+        
+    call save_maze_record(scratch_path, original)
+    assert file exists scratch_path
+    
+    define loaded_opt as load_maze_record(scratch_path)
+    assert loaded_opt is not nothing
+    
+    define loaded as value of loaded_opt
+    assert loaded.rows == 2
+    assert loaded.cols == 4
+    assert loaded.start_r == 0
+    assert loaded.start_c == 0
+    assert loaded.end_r == 1
+    assert loaded.end_c == 2
+    assert loaded.grid_data == original.grid_data
+    
+    delete file scratch_path
+
+test corrupt_json_tolerance_via_optional:
+    define corrupt_path as "tests/tmp/test_corrupt.json"
+    if not (file exists "tests/tmp"):
+        create directory "tests/tmp"
+        
+    write file corrupt_path with "{ invalid json not closed"
+    
+    # Must cleanly return nothing without raising a traceback or crash
+    define loaded_opt as load_maze_record(corrupt_path)
+    assert loaded_opt is nothing
+    
+    delete file corrupt_path
+
+test missing_file_tolerance_via_optional:
+    define missing_path as "tests/tmp/nonexistent_maze_12345.json"
+    define loaded_opt as load_maze_record(missing_path)
+    assert loaded_opt is nothing
+
+test maze_stats_computation:
+    define list lines as empty List<String>
+    add "S..#" to lines
+    add "##E." to lines
+    
+    define rec as build_maze_record(lines)
+    define counts as count_open_and_wall_cells(rec.grid_data, rec.rows, rec.cols)
+    
+    # 2 rows x 4 cols = 8 cells total
+    # Row 0: S (open), . (open), . (open), # (wall) -> 3 open, 1 wall
+    # Row 1: # (wall), # (wall), E (open), . (open) -> 2 open, 2 wall
+    # Total: 5 open cells, 3 wall cells
+    assert counts[0] == 5
+    assert counts[1] == 3
+
+test maze_rendering_with_path:
+    define list lines as empty List<String>
+    add "S..." to lines
+    add "###." to lines
+    add "..E." to lines
+    
+    define rec as build_maze_record(lines)
+    
+    define list path as empty List<String>
+    add "0,0" to path
+    add "0,1" to path
+    add "0,2" to path
+    add "0,3" to path
+    add "1,3" to path
+    add "2,3" to path
+    add "2,2" to path
+    
+    define rendered as render_maze_with_path(rec, path)
+    define rendered_lines as split rendered by "\n"
+    
+    # Row 0: S (start) followed by * * *
+    assert rendered_lines[0] == "S***"
+    # Row 1: walls preserved ### followed by *
+    assert rendered_lines[1] == "###*"
+    # Row 2: .. followed by E (end) and *
+    assert rendered_lines[2] == "..E*"

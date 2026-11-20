@@ -1,0 +1,110 @@
+# main.meme — Maze solver CLI entry point (argv router)
+use models
+use maze_loader
+use bfs_solver
+use dfs_solver
+use maze_renderer
+
+function report_error(msg: String) -> Void:
+    append msg + "\n" to file "/dev/stderr"
+
+function print_usage() -> Void:
+    append "Usage: maze <command> [file]" + "\n" to file "/dev/stderr"
+    append "Commands:" + "\n" to file "/dev/stderr"
+    append "  maze load <file>        # validate and persist maze" + "\n" to file "/dev/stderr"
+    append "  maze solve-bfs <file>   # shortest path length + rendered path" + "\n" to file "/dev/stderr"
+    append "  maze solve-dfs <file>   # any path (up, down, left, right) + rendered path" + "\n" to file "/dev/stderr"
+    append "  maze render <file>      # print the maze" + "\n" to file "/dev/stderr"
+    append "  maze stats <file>       # open cells, wall cells, dimensions" + "\n" to file "/dev/stderr"
+
+define argc: Int as argument count
+if argc < 2:
+    call print_usage()
+    call report_error("Error: missing command")
+    exit with code 1
+
+define cmd: String as argument 1
+
+if cmd != "load" and cmd != "solve-bfs" and cmd != "solve-dfs" and cmd != "render" and cmd != "stats":
+    call report_error("Error: unknown command: " + cmd)
+    call print_usage()
+    exit with code 1
+
+if argc != 3:
+    call print_usage()
+    call report_error("usage: maze " + cmd + " <file>")
+    exit with code 1
+
+define file_path: String as argument 2
+
+if cmd == "load":
+    define opt_lines as read lines from file file_path or else nothing
+    if opt_lines is nothing:
+        call report_error("Error: cannot read file: " + file_path)
+        exit with code 1
+    define lines as value of opt_lines
+    define v as validate_maze_lines(lines)
+    if not v.is_valid:
+        call report_error("Error: " + v.error_message)
+        exit with code 1
+    define rec as build_maze_record(lines)
+    call save_maze_record("data/maze.json", rec)
+    print "loaded maze " + text of rec.rows + "x" + text of rec.cols
+    exit with code 0
+
+# For solve-bfs, solve-dfs, render, stats:
+define opt_rec: Optional<MazeRecord> as nothing
+
+if file_path ends with ".json":
+    set opt_rec to load_maze_record(file_path)
+    if opt_rec is nothing:
+        call report_error("Error: missing or corrupt maze file: " + file_path)
+        exit with code 1
+else:
+    define opt_lines_other as read lines from file file_path or else nothing
+    if opt_lines_other is nothing:
+        call report_error("Error: cannot read file: " + file_path)
+        exit with code 1
+    define lines_other as value of opt_lines_other
+    define v_other as validate_maze_lines(lines_other)
+    if not v_other.is_valid:
+        call report_error("Error: " + v_other.error_message)
+        exit with code 1
+    define built as build_maze_record(lines_other)
+    set opt_rec to optional built
+
+define maze as value of opt_rec
+
+if cmd == "render":
+    define rendered as render_maze(maze)
+    print rendered
+    exit with code 0
+
+if cmd == "stats":
+    define counts as count_open_and_wall_cells(maze.grid_data, maze.rows, maze.cols)
+    print "dimensions: " + text of maze.rows + "x" + text of maze.cols
+    print "open cells: " + text of counts[0]
+    print "wall cells: " + text of counts[1]
+    exit with code 0
+
+if cmd == "solve-bfs":
+    define grid as build_grid_from_data(maze.grid_data, maze.rows, maze.cols)
+    define path as solve_bfs(grid, maze.rows, maze.cols, maze.start_r, maze.start_c, maze.end_r, maze.end_c)
+    if length of path == 0:
+        print "no path exists"
+        exit with code 0
+    define rendered_bfs as render_maze_with_path(maze, path)
+    print rendered_bfs
+    print "path length " + text of (length of path - 1)
+    exit with code 0
+
+if cmd == "solve-dfs":
+    define grid as build_grid_from_data(maze.grid_data, maze.rows, maze.cols)
+    define path as solve_dfs(grid, maze.rows, maze.cols, maze.start_r, maze.start_c, maze.end_r, maze.end_c)
+    if length of path == 0:
+        print "no path exists"
+        exit with code 0
+    define rendered_dfs as render_maze_with_path(maze, path)
+    print rendered_dfs
+    print "path length " + text of (length of path - 1)
+    exit with code 0
